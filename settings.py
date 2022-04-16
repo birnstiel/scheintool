@@ -31,22 +31,57 @@ fields = [
     ['date', 'Date of certificate', f'{currentDay}.{currentMonth}.{currentYear}'],
 ]
 
-# handle settings
+# define helper functions
 
-if platform in ['macos', 'linux']:
-    config_file = Path('~').expanduser() / '.config' / 'scheintool.yaml'
-elif platform == 'windows':
-    config_file = Path(os.environ['APPDATA']) / 'scheintool' / 'scheintool.yaml'
-    if not config_file.parent.is_dir():
-        config_file.parent.mkdir()
-else:
-    raise ValueError('unknown architecture')
 
-if not config_file.is_file():
-    config_file.touch()
+def read_config(config_file):
+    with open(config_file) as fh:
+        config = yaml.safe_load(fh)
+    return config
 
-with open(config_file) as fh:
-    config = yaml.safe_load(fh)
+
+def write_config(exec):
+    with open(config_file, 'w') as f:
+        yaml.dump({'libreoffice_exec': str(exec)}, stream=f)
+
+
+def guess_path(platform):
+    # we need to make a guess
+    if platform == 'linux':
+        try:
+            guess = Path(subprocess.check_output('which soffice', shell=True).decode().strip())
+        except subprocess.CalledProcessError:
+            guess = Path('')
+    elif platform == 'macos':
+        guess = Path('/Applications/LibreOffice.app/Contents/MacOS/soffice')
+    elif platform == 'windows':
+        guess = Path(r'C:\Program Files\LibreOffice\program\soffice.exe')
+
+    if not guess.is_file():
+        guess = None
+
+    return guess
+
+
+def ask_for_path():
+    import tkinter as tk
+    window = tk.Tk(className='Schein Tool')
+    label = tk.Label(text="enter executable of libreoffice (soffice.bin, soffice.exe, ...)")
+    entry = tk.Entry()
+    label.pack()
+    entry.pack()
+    exec = ''
+
+    def callback(event):
+        nonlocal exec
+        exec = entry.get()
+        window.quit()
+
+    button = tk.Button(text="Save path")
+    button.bind("<Button-1>", callback)
+    button.pack()
+    window.mainloop()
+    return exec
 
 
 def convert_xls_xsls(filename, libreoffice_executable=None):
@@ -82,3 +117,29 @@ def convert_xls_xsls(filename, libreoffice_executable=None):
     else:
         warnings.warn('XLS->XLSX conversion failed. Message is : ' + result.stderr)
         return None
+
+# set config file name and create if it doesn't exist
+
+
+if platform in ['macos', 'linux']:
+    config_file = Path('~').expanduser() / '.config' / 'scheintool.yaml'
+elif platform == 'windows':
+    config_file = Path(os.environ['APPDATA']) / 'scheintool' / 'scheintool.yaml'
+    if not config_file.parent.is_dir():
+        config_file.parent.mkdir()
+else:
+    raise ValueError('unknown architecture')
+
+if not config_file.is_file():
+    config_file.touch()
+
+config = read_config(config_file)
+
+if config is None:
+    guess = guess_path(platform)
+    if guess is None:
+        guess = ask_for_path()
+    write_config(str(guess))
+
+config = read_config(config_file)
+libreoffice_exec = config['libreoffice_exec']
