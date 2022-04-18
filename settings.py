@@ -1,6 +1,8 @@
 import platform as ptf
+import tkinter as tk
 from datetime import datetime
 from pathlib import Path
+import sys
 import os
 import yaml
 import warnings
@@ -64,7 +66,6 @@ def guess_path(platform):
 
 
 def ask_for_path():
-    import tkinter as tk
     window = tk.Tk(className='Schein Tool')
     label = tk.Label(text="enter executable of libreoffice (soffice.bin, soffice.exe, ...)")
     entry = tk.Entry()
@@ -143,3 +144,14 @@ if config is None:
 
 config = read_config(config_file)
 libreoffice_exec = config['libreoffice_exec']
+
+
+# data files
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
+
+docs_dir = Path(resource_path('docs'))
