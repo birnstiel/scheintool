@@ -1,11 +1,11 @@
 import csv
-import os
-import shutil
 from pathlib import Path
 
 import tkinter as tk
 from tkinter import filedialog as fd
 from tkinter import IntVar
+from tkinter import StringVar
+from tkinter import messagebox
 
 import settings
 
@@ -44,6 +44,8 @@ class main():
                         entry.insert(0, row[1])
                     elif name == 'type':
                         self.lecture_type.set(int(row[1]))
+                    elif name == 'mb':
+                        self.mb.set(row[1])
                     else:
                         raise ValueError(f'unknown entry: {row[0]}')
         else:
@@ -58,6 +60,7 @@ class main():
                     entry = self.entries[field[0]]['entry']
                     writer.writerow([field[0], entry.get()])
                 writer.writerow(['type', self.lecture_type.get()])
+                writer.writerow(['mb', self.mb.get()])
         except AttributeError:
             print('saving aborted')
 
@@ -84,19 +87,28 @@ class main():
             row += 1
 
         # add type of lecture as Radio Button
-        radio_frame = tk.Frame()
+        radio_frame_lecturetype = tk.Frame()
         self.lecture_type = IntVar(value=1)
-        type1 = tk.Radiobutton(radio_frame, anchor='w', text='Vorlesung mit Übungen', variable=self.lecture_type, value='1')
-        type2 = tk.Radiobutton(radio_frame, anchor='w', text='Vorlesung', variable=self.lecture_type, value='2')
-        type3 = tk.Radiobutton(radio_frame, anchor='w', text='Seminar', variable=self.lecture_type, value='3')
-        type4 = tk.Radiobutton(radio_frame, anchor='w', text='Praktikum', variable=self.lecture_type, value='4')
+        type1 = tk.Radiobutton(radio_frame_lecturetype, anchor='w', text='Vorlesung mit Übungen', variable=self.lecture_type, value='1')
+        type2 = tk.Radiobutton(radio_frame_lecturetype, anchor='w', text='Vorlesung', variable=self.lecture_type, value='2')
+        type3 = tk.Radiobutton(radio_frame_lecturetype, anchor='w', text='Seminar', variable=self.lecture_type, value='3')
+        type4 = tk.Radiobutton(radio_frame_lecturetype, anchor='w', text='Praktikum', variable=self.lecture_type, value='4')
 
         type1.pack(fill='both')
         type2.pack(fill='both')
         type3.pack(fill='both')
         type4.pack(fill='both')
-        radio_frame.grid(row=row, column=1)
+        radio_frame_lecturetype.grid(row=row, column=0)
+
+        # add type of schein as Radio Button
+        radio_frame_mb = tk.Frame()
+        self.mb = StringVar(value='master')
+        tk.Radiobutton(radio_frame_mb, anchor='w', text='Master', variable=self.mb, value='master').pack(fill='both')
+        tk.Radiobutton(radio_frame_mb, anchor='w', text='Bachelor', variable=self.mb, value='bachelor').pack(fill='both')
+        radio_frame_mb.grid(row=row, column=1)
         row += 1
+
+        # add the buttons on the bottom
 
         btn_frame = tk.Frame()
         btn_save = tk.Button(master=btn_frame, text="Save config")
@@ -119,60 +131,61 @@ class main():
         self.btn_grades.bind("<Button-1>", self.set_grade_file)
         self.btn_run.bind("<Button-1>", self.run)
 
-        # major: the subject in which the student is enrolled
-        # firstname: first name
-        # lastname: last name
-        # place: current city
-        # MNR: matrikel number
-        # DOB: date of birth
-        # POB: place of birth
-        # semester: WS or SS
-        # year
-        # title_en: english name of lecture
-        # title_de: german name of lecture
-        # lecturer: lecturers name
-        # ECTS: number of ECTS
-        # SWS: number of semester hours
-        # grade: the grade
-        # examdate: date of the exam
-        # 'type': 1: "Vorlesung mit Übung"
-        # 2: "Vorlesung"
-        # 3: "Seminar"
-        # 4: "Praktikum"
-        # date: date of the certificate, if set to None, uses today
-
         self.window.mainloop()
 
     def set_lsf_file(self, event):
         """open dialogue to set lsf data"""
         filename = fd.askopenfilename()
-        if filename is not None and Path(filename).is_file:
+        if filename != '' and Path(filename).is_file():
             self.lsf_file = filename
             self.btn_lsf.configure(fg="black")
             if hasattr(self, 'grade_file'):
                 self.btn_run.configure(fg='green')
-        else:
-            tk.messagebox.show(title='Error', message='invalid file')
+        elif filename == '' and not Path(filename).is_file():
+            tk.messagebox.showinfo(title='Error', message='invalid file')
 
     def set_grade_file(self, event):
         """open dialogue to set grades data"""
         filename = fd.askopenfilename()
-        if filename is not None and Path(filename).is_file:
+        if filename != '' and Path(filename).is_file():
             self.grade_file = filename
             self.btn_grades.configure(fg="black")
             if hasattr(self, 'lsf_file'):
                 self.btn_run.configure(fg='green')
-        else:
+        elif filename == '' and not Path(filename).is_file():
             tk.messagebox.showinfo(title='Error', message='invalid file')
 
     def run(self, event):
-        if hasattr(self, 'lsf_file') and hasattr(self, 'grade_file'):
-            tk.messagebox.showinfo(title='Success', message='running')
-            shutil.copy(settings.docs_dir / 'schein_master.pdf', Path(os.curdir) / 'new_schein.pdf')
-        else:
+        """Final Step: read the files, merge the information and create the scheins"""
+        if not hasattr(self, 'lsf_file') and hasattr(self, 'grade_file'):
             tk.messagebox.showinfo(title='Error', message='Set LSF & Grade file first')
+            return
+
+        lsf = settings.read_LSF(self.lsf_file)
+        grades = settings.read_grades(self.grade_file)
+
+        data = lsf.merge(grades, on='MNR')
+
+        for name, entry in self.entries.items():
+            content = entry['entry'].get()
+
+            if name in data:
+                mask = (data[name] == "") | data[name].isna()
+                data[name][mask] = content
+            else:
+                data[name] = content
+
+        data['place'] = 'München'
+        data['type'] = self.lecture_type.get()
+
+        filename = fd.asksaveasfilename()
+        if filename == '':
+            return
+
+        settings.fill_certificate(data, filename, degree=self.mb.get())
+        messagebox.showinfo(title='Completed', message='Schein was created successfully!')
 
 
-if __name__ == '__main__':
-    m = main()
-    m.start()
+# if __name__ == '__main__':
+m = main()
+m.start()

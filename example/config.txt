@@ -1,0 +1,11 @@
+semester,SS
+year,2022
+title_en,TestENG
+title_de,TESTDE
+lecturer,Til
+ECTS,6
+SWS,4
+date,21.4.2022
+examdate,21.4.2022
+type,4
+mb,bachelor

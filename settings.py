@@ -1,12 +1,23 @@
 import platform as ptf
 import tkinter as tk
+from tkinter import messagebox
 from datetime import datetime
 from pathlib import Path
 import sys
 import os
 import yaml
+import io
 import warnings
 import subprocess
+
+import pandas as pd
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+
+import PyPDF2
+
+from babel.dates import format_date
 
 # determine the system we are on
 
@@ -31,6 +42,7 @@ fields = [
     ['ECTS', 'ECTS', '6'],
     ['SWS', 'SWS', '4'],
     ['date', 'Date of certificate', f'{currentDay}.{currentMonth}.{currentYear}'],
+    ['examdate', 'Date of exam', f'{currentDay}.{currentMonth}.{currentYear}'],
 ]
 
 # define helper functions
@@ -85,6 +97,80 @@ def ask_for_path():
     return exec
 
 
+def read_grades(filename):
+    """Read grades from csv or xlsx file.
+
+    Parameters
+    ----------
+    filename : string | path
+        Try to read "matrikelnumer" or MNR and "grade"|"grades"|"note" from file
+
+
+    """
+    filename = Path(filename)
+    if filename.suffix.lower() == '.csv':
+        grades = pd.read_csv(filename)
+    elif filename.suffix.lower() == '.xlsx':
+        grades = pd.read_excel(filename)
+    else:
+        messagebox.showerror(title="Unknown file type", message="File type needs to be 'csv' or 'xlsx'.")
+
+    # now normalize column names
+
+    for col in grades.columns:
+        col = str(col)
+        if col.lower() in ['note', 'noten', 'grade', 'grades'] and 'grade' not in grades.columns:
+            grades.rename(columns={col.lower(): 'grade'}, inplace=True)
+        elif col.lower() in ['mnr', 'matrikelnummer', 'matrikelnumber']:
+            grades.rename(columns={col.lower(): 'MNR'}, inplace=True)
+
+    return grades
+
+
+def read_LSF(filename):
+    """Read grades from csv or xlsx file.
+
+    Parameters
+    ----------
+    filename : string | path
+        data file to read from
+
+
+    """
+    filename = Path(filename)
+    if filename.suffix.lower() == '.csv':
+        LSF = pd.read_csv(filename)
+    elif filename.suffix.lower() == '.xlsx':
+        LSF = pd.read_excel(filename, skiprows=[0, 1])  # , usecols=range(8), dtype=str)
+    elif filename.suffix.lower() == '.xls':
+        LSF = read_LSF(convert_xls_xsls(filename, libreoffice_executable=libreoffice_exec))
+        return LSF
+    else:
+        messagebox.showerror(title="Unknown file type", message="File type needs to be 'csv' or 'xlsx'.")
+
+    # now normalize column names
+
+    renaming = {
+        'Mtknr': 'MNR',
+        'Nachname': 'lastname',
+        'Vorname': 'firstname',
+        'Geschlecht': 'gender',
+        'Anschrift': 'address',
+        'Geburtstag/-ort': 'dob',
+        'E-Mail': 'email',
+        'Studiengänge': 'major'}
+
+    LSF.rename(columns=renaming, inplace=True)
+
+    # reformat the major (get rid of stuff behind the brackets), split dob in place and date
+
+    LSF['major'] = LSF.apply(lambda row: row['major'].split('(')[0], axis=1)
+    LSF['pob'] = LSF.apply(lambda row: row['dob'].split(' in')[1], axis=1)
+    LSF['dob'] = LSF.apply(lambda row: row['dob'].split(' in')[0], axis=1)
+
+    return LSF
+
+
 def convert_xls_xsls(filename, libreoffice_executable=None):
     """Converts a LSF-generated XLS table to a modern XLSX format.
 
@@ -114,10 +200,141 @@ def convert_xls_xsls(filename, libreoffice_executable=None):
 
     if result.returncode == 0:
         # return the output filename
-        return result.stdout.split(b">")[1].split(b"using filter")[0].strip()
+        res = result.stdout.split(b">")[1].split(b"using filter")[0].strip()
+        if isinstance(res, bytes):
+            res = res.decode()
+        return res
     else:
         warnings.warn('XLS->XLSX conversion failed. Message is : ' + result.stderr)
         return None
+
+
+def fill_certificate(data, filename, degree='master'):
+    """Fills out an LMU master or bachelor certificate.
+
+    For every row in the table `data`, a certificate is created and this is
+    stored in file `filename`.
+
+    data : DataFrame
+        needs the following columns:
+        - major: the subject in which the student is enrolled
+        - firstname: first name
+        - lastname: last name
+        - place: current city
+        - MNR: matrikel number
+        - DOB: date of birth
+        - POB: place of birth
+        - semester: WS or SS
+        - year
+        - title_en : english name of lecture
+        - title_de : german name of lecture
+        - lecturer : lecturers name
+        - ECTS: number of ECTS
+        - SWS: number of semester hours
+        - grade: the grade
+        - examdate: date of the exam
+        - type: 1: "Vorlesung mit Übung"
+                2: "Vorlesung"
+                3: "Seminar"
+                4: "Praktikum"
+        - date: date of the certificate, if set to None, uses today
+
+    filename : str | PosixPath
+        into with file to write the certificates
+
+    degree : str
+        'master', or 'bachelor'
+
+    """
+    # define sizes: we use a fixed font size and an x and y offset in cm. Then
+    # we scale all lengths with the factor `scale` such that we can rescale
+    # things easily.
+
+    today = format_date(datetime.today(), format="long", locale='de_DE')
+
+    fontsize = 12
+    x_off = 2.54 * cm      # left margin
+    y_off = 0.761 * A4[1]  # distance from bottom to first line
+    xscale = cm             # scale for the horizontal direction
+    yscale = 0.98 * cm      # scale for the vertical direction
+
+    if degree not in ['bachelor', 'master']:
+        raise ValueError('degree must be bachelor or master')
+
+    def print(x, y, text):
+        can.drawString(x * xscale, - y * yscale, str(text))
+
+    # get the schein
+
+    cert = str(docs_dir / f'schein_{degree}.pdf')
+
+    # create the output PDF file
+
+    output = PyPDF2.PdfFileWriter()
+
+    # we loop over each dictionary
+
+    for i, row in data.iterrows():
+
+        packet = io.BytesIO()
+
+        # create a new PDF with Reportlab
+
+        can = canvas.Canvas(packet, pagesize=A4)
+        can.setFont("Helvetica", fontsize)
+
+        can.translate(x_off, y_off)
+
+        print(6.75, 0, row.major)  # noqa
+        print(2,    1, row.firstname + ' ' + row.lastname)  # noqa
+        print(1,    2, row.place)  # noqa
+        print(11.3, 2, row.MNR)  # noqa
+        print(2.5,  3, row.dob)  # noqa
+        print(7.0,  3, row.pob)  # noqa
+
+        if row.semester == 'SS':
+            print(1.425, 4.2, 'x')
+        elif row.semester == 'WS':
+            print(3.75, 4.2, 'x')
+        else:
+            raise ValueError('semester needs to be SS or WS')
+
+        print(7.5, 4.2, row.year)
+
+        print(3, 6.75, row.title_de)
+        print(3, 8.75, row.title_en)
+
+        print(1.5, 10.75, row.lecturer)
+
+        print(10, 11.75, row.SWS)
+        print(14, 11.75, row.ECTS)
+        print(8, 12.75, row.grade)
+
+        print(5, 13.75, row.examdate)
+
+        print(5.05, 14.16 + row.type * 0.82, 'x')
+
+        print(2.5, 19, row.date or today)
+
+        can.save()
+
+        # move to the beginning of the StringIO buffer
+        packet.seek(0)
+        new_pdf = PyPDF2.PdfFileReader(packet)
+
+        # add the "watermark" (which is the new pdf) on the existing page
+        # we need to re-open the schein otherwise, we will overwrite all data
+        # on all the pdfs
+        schein = PyPDF2.PdfFileReader(open(cert, 'rb'))
+        page = schein.getPage(0)
+        page.mergePage(new_pdf.getPage(0))
+        output.addPage(page)
+
+    # finally, write "output" to a real file
+    outputStream = open(filename, "wb")
+    output.write(outputStream)
+    outputStream.close()
+
 
 # set config file name and create if it doesn't exist
 
@@ -154,4 +371,4 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-docs_dir = Path(resource_path('docs'))
+docs_dir = Path(resource_path('pdfs'))
