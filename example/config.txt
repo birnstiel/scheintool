@@ -1,11 +1,11 @@
 semester,SS
 year,2022
-title_en,TestENG
-title_de,TESTDE
-lecturer,Til
+title_en,Englischer Titel
+title_de,Deutscher Titel
+lecturer,Prof. Dr. Example
 ECTS,6
 SWS,4
 date,21.4.2022
 examdate,21.4.2022
-type,4
+type,3
 mb,bachelor

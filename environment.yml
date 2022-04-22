@@ -1,0 +1,11 @@
+name: scheintool-env
+
+dependencies:
+  - python=3.8
+  - pandas
+  - reportlab
+  - PyPDF2
+  - babel
+  - pyyaml
+  - openpyxl
+  - pyinstaller
