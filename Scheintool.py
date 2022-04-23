@@ -46,6 +46,8 @@ class main():
                         self.lecture_type.set(int(row[1]))
                     elif name == 'mb':
                         self.mb.set(row[1])
+                    elif name == 'semester':
+                        self.semester.set(row[1])
                     else:
                         raise ValueError(f'unknown entry: {row[0]}')
         else:
@@ -61,6 +63,7 @@ class main():
                     writer.writerow([field[0], entry.get()])
                 writer.writerow(['type', self.lecture_type.get()])
                 writer.writerow(['mb', self.mb.get()])
+                writer.writerow(['semester', self.semester.get()])
         except AttributeError:
             print('saving aborted')
 
@@ -76,6 +79,16 @@ class main():
         greeting.grid(column=0, row=0, columnspan=1)
 
         row = 1
+
+        # start with radio button for summer/winter term
+        radio_frame_semester = tk.Frame()
+        self.semester = StringVar(value='SS' if settings.currentMonth < 10 else 'WS')
+        tk.Radiobutton(radio_frame_semester, anchor='w', text='SS', variable=self.semester, value='SS').pack(fill='both', side='left')
+        tk.Radiobutton(radio_frame_semester, anchor='w', text='WS', variable=self.semester, value='WS').pack(fill='both', side='left')
+        radio_frame_semester.grid(row=1, column=1)
+        row += 1
+
+        # add all fields
         self.entries = {}
         for name, title, default in self.fields:
             label, entry = add_entry(title, content=default, row=row)
@@ -177,6 +190,7 @@ class main():
 
         data['place'] = 'München'
         data['type'] = self.lecture_type.get()
+        data['semester'] = self.semester.get()
 
         filename = fd.asksaveasfilename()
         if filename == '':

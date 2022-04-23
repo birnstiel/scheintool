@@ -34,7 +34,6 @@ currentYear = datetime.now().year
 # define the fields that need to be set in the UI
 
 fields = [
-    ['semester', 'Semester', 'SS' if currentMonth < 10 else 'WS'],
     ['year', 'Year', str(currentYear)],
     ['title_en', 'Title (ENG)', ''],
     ['title_de', 'Title (DEU)', ''],
