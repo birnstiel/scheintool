@@ -10,6 +10,7 @@ import io
 import warnings
 import subprocess
 
+import xlsxwriter
 import pandas as pd
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -334,6 +335,119 @@ def fill_certificate(data, filename, degree='master'):
     output.write(outputStream)
     outputStream.close()
 
+
+def write_grade_table(fname, data, course_info):
+    """Writes the grades to Excel file following the LMU physics template.
+
+    fname : str
+        file name to write to
+
+    data : DataFrame
+        needs to contain:
+        - MNR
+        - lastname
+        - firstname
+        - major
+        - grade
+        - examdate
+
+        if it does not contain `beisitzer` or `examdate`, those are
+        taken from `course_info`
+
+    course_info : dict-like
+        needs to contain:
+        - title_de: course title in German
+        - semester: SS or WS
+        - year: e.g. 19/20 or 2020 or 20
+        - examdate: date of the examination
+        - lecturer: lecturer
+        - beisitzer: beisitzer
+
+    """
+
+    # Create a workbook and add a worksheet.
+
+    with xlsxwriter.Workbook(fname) as workbook:
+        worksheet = workbook.add_worksheet()
+
+        # Add a bold format to use to highlight cells.
+
+        greyboldborder = workbook.add_format({'bold': True, 'border': 1, 'bg_color': '#BFBFBF', 'border_color': '#000000'})
+        greyboldnoborder = workbook.add_format({'bold': True, 'bg_color': '#BFBFBF', 'border': 0})
+        wrap = workbook.add_format({'text_wrap': True})
+
+        worksheet.set_column(0, 0, 20)
+        worksheet.set_column(1, 1, 30)
+        worksheet.set_column(2, 3, 20)
+        worksheet.set_column(4, 5, 10)
+        worksheet.set_column(6, 6, 20)
+
+        worksheet.merge_range('C1:G5', '', greyboldnoborder)
+
+        # write course info
+
+        worksheet.write(0, 0, 'Name der Veranstaltung:', greyboldborder)
+        worksheet.write(1, 0, 'Semester:', greyboldborder)
+        worksheet.write(2, 0, 'Datum der Prüfung:', greyboldborder)
+        worksheet.write(3, 0, '1. Prüfer:', greyboldborder)
+        worksheet.write(4, 0, '2.Prüfer:', greyboldborder)
+
+        worksheet.write(0, 1, course_info['title_de'], greyboldnoborder)
+        worksheet.write(1, 1, course_info['semester'] + course_info['year'], greyboldnoborder)
+        if 'examdate' in course_info:
+            worksheet.write(2, 1, course_info['examdate'], greyboldnoborder)
+        else:
+            worksheet.write(2, 1, 's.u.', greyboldnoborder)
+        worksheet.write(3, 1, course_info['lecturer'], greyboldnoborder)
+
+        if 'beisitzer' in course_info:
+            worksheet.write(4, 1, course_info['beisitzer'], greyboldnoborder)
+        else:
+            worksheet.write(4, 1, 's.u.', greyboldnoborder)
+
+        # Write headers
+
+        worksheet.write(11, 0, 'Matrikelnumber', greyboldborder)
+        worksheet.write(11, 1, 'Nachname', greyboldborder)
+        worksheet.write(11, 2, 'Vorname', greyboldborder)
+        worksheet.write(11, 3, 'Studiengang', greyboldborder)
+        worksheet.write(11, 4, 'Note', greyboldborder)
+        worksheet.write(11, 5, 'BE/NB', greyboldborder)
+        if 'examdate' not in course_info:
+            worksheet.write(11, 6, 'Datum der Prüfung', greyboldborder)
+        if 'beisitzer' not in course_info:
+            worksheet.write(11, 7, 'Beisitzer', greyboldborder)
+
+        # mimic template
+
+        worksheet.write('A7', 'Bitte schicken Sie die Liste via Email an')
+        worksheet.write('B8', 'notenlisten@physik.uni-muenchen.de')
+        worksheet.write('A9', 'und eine unterschrieben Liste an')
+        worksheet.write('B10', 'Fakultät für Physik\nPrüfungsamt\nSchellingstr. 4\nD-80799 München', wrap)
+
+        # Start from the first cell. Rows and columns are zero indexed.
+        row = 12
+        col = 0
+
+        # Iterate over the data and write it out row by row.
+        for i, pdrow in data.iterrows():
+            BENB = float(pdrow.grade) <= 4.0
+            BENB = int(BENB) * 'BE' + int(not BENB) * 'NB'
+
+            worksheet.write(row, col, pdrow.MNR)
+            worksheet.write(row, col + 1, pdrow.lastname)
+            worksheet.write(row, col + 2, pdrow.firstname)
+            worksheet.write(row, col + 3, pdrow.major)
+            worksheet.write(row, col + 4, pdrow.grade)
+            worksheet.write(row, col + 5, BENB)
+            if 'examdate' not in course_info:
+                worksheet.write(row, col + 6, pdrow.examdate)
+            if 'beisitzer' not in course_info:
+                worksheet.write(row, col + 7, pdrow.beisitzer)
+            row += 1
+
+
+# continue configuration
 
 # set config file name and create if it doesn't exist
 

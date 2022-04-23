@@ -1,6 +1,6 @@
 # LMU Scheintool
 
-Tool to generate certificates based on LSF data and a CSV/Excel file of Matrikelnumbers and grades.
+Tool to generate certificates based on LSF data and a CSV/Excel file of Matrikelnumbers and grades. An Excel file for the examination office is created as well.
 
 ## Building
 

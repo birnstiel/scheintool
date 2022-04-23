@@ -178,9 +178,12 @@ class main():
         grades = settings.read_grades(self.grade_file)
 
         data = lsf.merge(grades, on='MNR')
+        course_info = {'beisitzer': ''}
 
         for name, entry in self.entries.items():
             content = entry['entry'].get()
+
+            course_info[name] = content
 
             if name in data:
                 mask = (data[name] == "") | data[name].isna()
@@ -191,12 +194,16 @@ class main():
         data['place'] = 'München'
         data['type'] = self.lecture_type.get()
         data['semester'] = self.semester.get()
+        course_info['semester'] = self.semester.get()
 
-        filename = fd.asksaveasfilename()
+        filename = fd.asksaveasfilename(defaultextension=".pdf", initialfile="scheine.pdf")
         if filename == '':
             return
 
         settings.fill_certificate(data, filename, degree=self.mb.get())
+
+        settings.write_grade_table(Path(filename).with_suffix('.xlsx'), data, course_info)
+
         messagebox.showinfo(title='Completed', message='Schein was created successfully!')
 
 

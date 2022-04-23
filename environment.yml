@@ -9,3 +9,4 @@ dependencies:
   - pyyaml
   - openpyxl
   - pyinstaller
+  - xlsxwriter
