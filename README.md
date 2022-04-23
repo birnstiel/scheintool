@@ -10,7 +10,7 @@ To save size of the final file, create an environment with
 
 then activate it with
 
-    conda activate scheintoo-env
+    conda activate scheintool-env
 
 then call `make`. On Windows, execute the command in the make file, but replace the `:` with `;`. The resulting apps should be build in the `dist/` folder.
 

@@ -207,6 +207,6 @@ class main():
         messagebox.showinfo(title='Completed', message='Schein was created successfully!')
 
 
-# if __name__ == '__main__':
-m = main()
-m.start()
+if __name__ == '__main__':
+    m = main()
+    m.start()
