@@ -6,6 +6,8 @@ name: pyinstaller-build
 # Controls when the workflow will run
 on:
   push:
+    tags:
+      - "v*"
 
 jobs:
 
