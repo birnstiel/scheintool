@@ -23,10 +23,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # tag_name: ${{ github.ref }}
-          # release_name: Release ${{ github.ref }}
-          tag_name: ${{ github.sha }}
-          release_name: Release ${{ github.sha }}
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
 
   build_release:
     name: Build Release
@@ -53,7 +51,7 @@ jobs:
                 pyinstaller -y --onefile --windowed --add-data pdfs/:pdfs/ --icon icon.ico --hiddenimport=babel.numbers --hiddenimport=yaml Scheintool.py &&
             OUT_FILE_NAME: Scheintool
             ASSET_MIME: application/x-executable
-            
+
           - os: windows-latest
             TARGET: windows
             CMD_BUILD: pyinstaller -F -w -n clipster -i resources/clipster.ico cli.py
