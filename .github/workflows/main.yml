@@ -37,6 +37,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         include:
+
           - os: macos-latest
             TARGET: macos
             CMD_BUILD: >
@@ -45,12 +46,14 @@ jobs:
                 zip -r9 Scheintool Scheintool.app/
             OUT_FILE_NAME: Scheintool.zip
             ASSET_MIME: application/zip
+
           - os: ubuntu-latest
             TARGET: ubuntu
             CMD_BUILD: >
                 pyinstaller -y --onefile --windowed --add-data pdfs/:pdfs/ --icon icon.ico --hiddenimport=babel.numbers --hiddenimport=yaml Scheintool.py &&
             OUT_FILE_NAME: Scheintool
             ASSET_MIME: application/x-executable
+            
           - os: windows-latest
             TARGET: windows
             CMD_BUILD: pyinstaller -F -w -n clipster -i resources/clipster.ico cli.py
