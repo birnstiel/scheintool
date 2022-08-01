@@ -203,7 +203,7 @@ def convert_xls_xsls(filename, libreoffice_executable=None, encoding='latin-1'):
 
     # non-breaking spaces can cause issues: remove them
     tempfile = Path(filename)
-    tempfile = tempfile.with_stem(tempfile.stem + '_')
+    tempfile = tempfile.with_name(tempfile.stem + '_' + tempfile.suffix)
     res = None
     try:
         with open(filename, 'r', encoding=encoding) as fh:
