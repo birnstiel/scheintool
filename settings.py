@@ -209,7 +209,7 @@ def convert_xls_xsls(filename, libreoffice_executable=None, encoding='latin-1'):
         with open(filename, 'r', encoding=encoding) as fh:
             content = fh.read()
             content = re.sub(r'\s', ' ', content)
-        with open(tempfile, mode='w',) as fh:
+        with open(tempfile, mode='w', encoding=encoding) as fh:
             fh.write(content)
 
         result = subprocess.run([libreoffice_executable, '--convert-to', 'xlsx', '--headless', filename, '--outdir', outdir], capture_output=True)
