@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 import sys
 import os
+import re
 import yaml
 import io
 import warnings
@@ -55,8 +56,12 @@ def read_config(config_file):
 
 
 def write_config(exec):
+    "for windows systems, we avoid the newline at the end"
     with open(config_file, 'w') as f:
-        yaml.dump({'libreoffice_exec': str(exec)}, stream=f)
+        dump = yaml.dump({'libreoffice_exec': str(exec)})
+        if dump.endswith('\n'):
+            dump = dump[:-1]
+        f.write(dump)
 
 
 def guess_path(platform):
@@ -171,7 +176,7 @@ def read_LSF(filename):
     return LSF
 
 
-def convert_xls_xsls(filename, libreoffice_executable=None):
+def convert_xls_xsls(filename, libreoffice_executable=None, encoding='latin-1'):
     """Converts a LSF-generated XLS table to a modern XLSX format.
 
     Conversion uses `soffice` by libreoffice, by default located in the `LibreOffice.app` on mac.
@@ -196,17 +201,36 @@ def convert_xls_xsls(filename, libreoffice_executable=None):
 
     outdir = str(Path(filename).expanduser().parent)
 
-    result = subprocess.run([libreoffice_executable, '--convert-to', 'xlsx', '--headless', filename, '--outdir', outdir], capture_output=True)
+    # non-breaking spaces can cause issues: remove them
+    tempfile = Path(filename)
+    tempfile = tempfile.with_stem(tempfile.stem + '_')
+    res = None
+    try:
+        with open(filename, 'r', encoding=encoding) as fh:
+            content = fh.read()
+            content = re.sub(r'\s', ' ', content)
+        with open(tempfile, mode='w',) as fh:
+            fh.write(content)
 
-    if result.returncode == 0:
-        # return the output filename
-        res = result.stdout.split(b">")[1].split(b"using filter")[0].strip()
-        if isinstance(res, bytes):
-            res = res.decode()
+        result = subprocess.run([libreoffice_executable, '--convert-to', 'xlsx', '--headless', filename, '--outdir', outdir], capture_output=True)
+
+        if result.returncode == 0:
+            # return the output filename:
+            # some libreoffice instances return text, others don't
+            if result.stdout:
+                res = result.stdout.split(b">")[1].split(b"using filter")[0].strip()
+                if isinstance(res, bytes):
+                    res = res.decode()
+            else:
+                # if there is no output, we construct the result name
+                res = Path(outdir) / filename
+                res = str(res.with_suffix('.xlsx').absolute())
+        else:
+            warnings.warn('XLS->XLSX conversion failed. Message is : ' + result.stderr)
+    finally:
+        if tempfile.is_file():
+            tempfile.unlink()
         return res
-    else:
-        warnings.warn('XLS->XLSX conversion failed. Message is : ' + result.stderr)
-        return None
 
 
 def fill_certificate(data, filename, degree='master'):
