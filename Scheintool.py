@@ -34,7 +34,7 @@ class main():
         "loads the entries from a CSV file"
         filename = fd.askopenfilename()
         if filename is not None:
-            with open(filename, 'r') as fh:
+            with open(filename, 'r', encoding=settings.encoding) as fh:
                 reader = csv.reader(fh)
                 for row in reader:
                     name = row[0]
@@ -200,11 +200,25 @@ class main():
         if filename == '':
             return
 
-        settings.fill_certificate(data, filename, degree=self.mb.get())
+        try:
+            settings.fill_certificate(data, filename, degree=self.mb.get())
+            schein_error = False
+        except Exception as err:
+            schein_error = True
+            messagebox.showinfo(title='Error', message='Could not generate Schein:\n' + str(err))
 
-        settings.write_grade_table(Path(filename).with_suffix('.xlsx'), data, course_info)
+        try:
+            settings.write_grade_table(Path(filename).with_suffix('.xlsx'), data, course_info)
+            table_error = False
+        except Exception as err:
+            table_error = True
+            messagebox.showinfo(title='Error', message='Could not generate grade spread sheet:\n' + str(err))
 
-        messagebox.showinfo(title='Completed', message='Schein was created successfully!')
+        messagebox.showinfo(
+            title='Completed',
+            message=f'Schein was {"not " * schein_error}created successfully!\n' +
+            f'Grade table was {"not " * table_error}created successfully!'
+        )
 
 
 if __name__ == '__main__':

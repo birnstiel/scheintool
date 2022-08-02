@@ -55,10 +55,10 @@ def read_config(config_file):
     return config
 
 
-def write_config(exec):
+def write_config(config):
     "for windows systems, we avoid the newline at the end"
     with open(config_file, 'w') as f:
-        dump = yaml.dump({'libreoffice_exec': str(exec)})
+        dump = yaml.dump(config)
         if dump.endswith('\n'):
             dump = dump[:-1]
         f.write(dump)
@@ -170,8 +170,8 @@ def read_LSF(filename):
     # reformat the major (get rid of stuff behind the brackets), split dob in place and date
 
     LSF['major'] = LSF.apply(lambda row: row['major'].split('(')[0], axis=1)
-    LSF['pob'] = LSF.apply(lambda row: row['dob'].split(' in')[1], axis=1)
-    LSF['dob'] = LSF.apply(lambda row: row['dob'].split(' in')[0], axis=1)
+    LSF['pob'] = LSF.apply(lambda row: re.split(r'\sin\s', row.dob)[1], axis=1)
+    LSF['dob'] = LSF.apply(lambda row: re.split(r'\sin\s', row.dob)[0], axis=1)
 
     return LSF
 
@@ -478,7 +478,9 @@ def write_grade_table(fname, data, course_info):
 
 if platform in ['macos', 'linux']:
     config_file = Path('~').expanduser() / '.config' / 'scheintool.yaml'
+    encoding = 'utf8'
 elif platform == 'windows':
+    encoding = 'latin-1'
     config_file = Path(os.environ['APPDATA']) / 'scheintool' / 'scheintool.yaml'
     if not config_file.parent.is_dir():
         config_file.parent.mkdir()
@@ -490,17 +492,21 @@ if not config_file.is_file():
 
 config = read_config(config_file)
 
-if config is None:
+if config is None or 'libreoffice_exec' not in config or 'encoding' not in config:
     guess = guess_path(platform)
     if guess is None:
         guess = ask_for_path()
-    write_config(str(guess))
+    write_config({
+        'libreoffice_exec': str(guess),
+        'encoding': encoding
+    })
 
 config = read_config(config_file)
 libreoffice_exec = config['libreoffice_exec']
-
+encoding = config['encoding']
 
 # data files
+
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
