@@ -34,24 +34,27 @@ class main():
         "loads the entries from a CSV file"
         filename = fd.askopenfilename()
         if filename is not None:
-            with open(filename, 'r', encoding=settings.encoding) as fh:
-                reader = csv.reader(fh)
-                for row in reader:
-                    name = row[0]
-                    if name in self.entries:
-                        entry = self.entries[name]['entry']
-                        entry.delete(0, tk.END)
-                        entry.insert(0, row[1])
-                    elif name == 'type':
-                        self.lecture_type.set(int(row[1]))
-                    elif name == 'mb':
-                        self.mb.set(row[1])
-                    elif name == 'semester':
-                        self.semester.set(row[1])
-                    else:
-                        raise ValueError(f'unknown entry: {row[0]}')
+            try:
+                with open(filename, 'r', encoding=settings.encoding) as fh:
+                    reader = csv.reader(fh)
+                    for row in reader:
+                        name = row[0]
+                        if name in self.entries:
+                            entry = self.entries[name]['entry']
+                            entry.delete(0, tk.END)
+                            entry.insert(0, row[1])
+                        elif name == 'type':
+                            self.lecture_type.set(int(row[1]))
+                        elif name == 'mb':
+                            self.mb.set(row[1])
+                        elif name == 'semester':
+                            self.semester.set(row[1])
+                        else:
+                            raise ValueError(f'unknown entry: {row[0]}')
+            except Exception as err:
+                messagebox.showinfo(title='Error', message='Could not load configuration:\n' + str(err))
         else:
-            print('saving aborted')
+            print('loading aborted')
 
     def save(self, event):
         "stores the entries into a CSV file"
