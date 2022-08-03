@@ -8,7 +8,7 @@ from tkinter import IntVar
 from tkinter import StringVar
 from tkinter import messagebox
 
-import settings
+from . import settings
 
 
 def add_entry(label, content='', row=0):
@@ -225,6 +225,10 @@ class main():
         )
 
 
-if __name__ == '__main__':
+def start():
     m = main()
     m.start()
+
+
+if __name__ == '__main__':
+    start()

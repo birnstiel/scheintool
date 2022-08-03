@@ -1,3 +1,5 @@
 build/
 dist/
-scheintool.spec
+__pycache__/
+scheintool/Scheintool.spec
+scheintool.egg-info/

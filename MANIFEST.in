@@ -1,0 +1,9 @@
+include README.md
+include LICENSE
+include example/*.*
+include environment.yml
+include scheintool/Makefile
+include scheintool/pdfs/*.pdf
+include scheintool/icon.ico
+include scheintool/Logo_LMU.svg
+.gitignore
