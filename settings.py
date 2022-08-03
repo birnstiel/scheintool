@@ -464,7 +464,7 @@ def write_grade_table(fname, data, course_info):
 
         # Iterate over the data and write it out row by row.
         for i, pdrow in data.iterrows():
-            BENB = float(pdrow.grade) <= 4.0
+            BENB = float(str(pdrow.grade).replace(',', '.')) <= 4.0
             BENB = int(BENB) * 'BE' + int(not BENB) * 'NB'
 
             worksheet.write(row, col, pdrow.MNR)
