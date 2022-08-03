@@ -142,16 +142,19 @@ def read_LSF(filename):
 
 
     """
-    filename = Path(filename)
-    if filename.suffix.lower() == '.csv':
-        LSF = pd.read_csv(filename)
-    elif filename.suffix.lower() == '.xlsx':
-        LSF = pd.read_excel(filename, skiprows=[0, 1])  # , usecols=range(8), dtype=str)
-    elif filename.suffix.lower() == '.xls':
-        LSF = read_LSF(convert_xls_xsls(filename, libreoffice_executable=libreoffice_exec))
-        return LSF
-    else:
-        messagebox.showerror(title="Unknown file type", message="File type needs to be 'csv' or 'xlsx'.")
+    try:
+        filename = Path(filename)
+        if filename.suffix.lower() == '.csv':
+            LSF = pd.read_csv(filename)
+        elif filename.suffix.lower() == '.xlsx':
+            LSF = pd.read_excel(filename, skiprows=[0, 1])  # , usecols=range(8), dtype=str)
+        elif filename.suffix.lower() == '.xls':
+            LSF = read_LSF(convert_xls_xsls(filename, libreoffice_executable=libreoffice_exec))
+            return LSF
+        else:
+            messagebox.showerror(title="Unknown file type", message="File type needs to be 'csv' or 'xlsx'.")
+    except Exception as err:
+        messagebox.showerror(title="Could not load LSF file", message=f"Filename: {filename}\nError:\n {err}")
 
     # now normalize column names
 
@@ -165,13 +168,19 @@ def read_LSF(filename):
         'E-Mail': 'email',
         'Studiengänge': 'major'}
 
-    LSF.rename(columns=renaming, inplace=True)
+    try:
+        LSF.rename(columns=renaming, inplace=True)
+    except Exception as err:
+        messagebox.showerror(title="Could not rename entries", message=f"Error:\n {err}")
 
     # reformat the major (get rid of stuff behind the brackets), split dob in place and date
 
-    LSF['major'] = LSF.apply(lambda row: row['major'].split('(')[0], axis=1)
-    LSF['pob'] = LSF.apply(lambda row: re.split(r'\sin\s', row.dob)[1], axis=1)
-    LSF['dob'] = LSF.apply(lambda row: re.split(r'\sin\s', row.dob)[0], axis=1)
+    try:
+        LSF['major'] = LSF.apply(lambda row: row['major'].split('(')[0], axis=1)
+        LSF['pob'] = LSF.apply(lambda row: re.split(r'\sin\s', row.dob)[1], axis=1)
+        LSF['dob'] = LSF.apply(lambda row: re.split(r'\sin\s', row.dob)[0], axis=1)
+    except Exception as err:
+        messagebox.showerror(title="Error", message=f"Could not set major or date/place of birth:\n {err}")
 
     return LSF
 
