@@ -1,4 +1,5 @@
 import csv
+import traceback
 from pathlib import Path
 
 import tkinter as tk
@@ -215,7 +216,7 @@ class main():
             table_error = False
         except Exception as err:
             table_error = True
-            messagebox.showinfo(title='Error', message='Could not generate grade spread sheet:\n' + str(err))
+            messagebox.showinfo(title='Error', message=f'Could not generate grade spread sheet:\n{err}\n{traceback.format_exc()}')
 
         messagebox.showinfo(
             title='Completed',
