@@ -4,7 +4,7 @@ Tool to generate **LMU Physics certificates** based on LSF data and a CSV/Excel 
 
 ## Installation
 
-On a system with a python version above 3.9 you can just clone this repository and run the `Scheintool.py` script. If you install the package using `pip install .` in the base of the repository, then the command `schein` is added to your command line.
+On a system with a python version above 3.8 you can just clone this repository and run the `Scheintool.py` script. If you install the package using `pip install .` in the base of the repository, then the command `schein` is added to your command line.
 
 ## Building
 
@@ -15,6 +15,10 @@ To save size of the final file, create an environment with
 then activate it with
 
     conda activate scheintool-env
+
+and install the `scheintool` itself with
+
+    pip install -e .
 
 then go into the `scheintool` sub-folder where the `Makefile` is located and call `make`. On Windows, execute the command in the make file, but replace the `:` with `;`. The resulting apps should be build in the `dist/` folder.
 
