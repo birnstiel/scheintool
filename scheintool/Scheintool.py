@@ -8,7 +8,7 @@ from tkinter import IntVar
 from tkinter import StringVar
 from tkinter import messagebox
 
-from . import settings
+from scheintool import settings
 
 
 def add_entry(label, content='', row=0):
