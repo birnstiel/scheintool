@@ -1,6 +1,10 @@
 # LMU Scheintool
 
-Tool to generate certificates based on LSF data and a CSV/Excel file of Matrikelnumbers and grades. An Excel file for the examination office is created as well.
+Tool to generate **LMU Physics certificates** based on LSF data and a CSV/Excel file of Matrikelnumbers and grades. An Excel file for the examination office is created as well.
+
+## Installation
+
+On a system with a python version above 3.9 you can just clone this repository and run the `Scheintool.py` script. If you install the package using `pip install .` in the base of the repository, then the command `schein` is added to your command line.
 
 ## Building
 
@@ -12,13 +16,13 @@ then activate it with
 
     conda activate scheintool-env
 
-then call `make`. On Windows, execute the command in the make file, but replace the `:` with `;`. The resulting apps should be build in the `dist/` folder.
+then go into the `scheintool` sub-folder where the `Makefile` is located and call `make`. On Windows, execute the command in the make file, but replace the `:` with `;`. The resulting apps should be build in the `dist/` folder.
 
-## Setup
+## Setup Libreoffice
 
-The `.XLS` file created by the LSF is not in a format that can be read by python directly (otherwise, let me know!). Therefore it needs to be converted to a modern `.xlsx` format. Scheintool uses Libreoffice for that. To this end, it will search the default location of the executable `soffice`. If it is found, it will be stored as a config file `scheintool.yml`, otherwise it will ask for the path.
+The `.XLS` file created by the LSF is not in a format that can be read by python directly (otherwise, let me know!). Therefore, it needs to be converted to a modern `.xlsx` format. `Scheintool` uses *Libreoffice* for that. To this end, it will search the default location of the executable `soffice`. If it is found, it will be stored as a config file `scheintool.yml`, otherwise it will ask for the path.
 
-Alternatively, you could first open the `.XLS` file with Microsoft Excel and save it as a `.xslx` file - this can be processed directly without the need to use Libreoffice.
+Alternatively, you could first open the `.XLS` file with Microsoft Excel and save it as a `.xslx` file - this can be processed directly without the need to use *Libreoffice*.
 
 ## Usage
 
