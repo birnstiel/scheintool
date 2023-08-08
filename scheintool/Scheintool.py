@@ -181,7 +181,7 @@ class main():
         lsf = settings.read_LSF(self.lsf_file)
         grades = settings.read_grades(self.grade_file)
 
-        data = lsf.merge(grades, on='MNR')
+        data = lsf.merge(grades[['MNR', 'grade']], on='MNR')
         course_info = {'beisitzer': ''}
 
         for name, entry in self.entries.items():

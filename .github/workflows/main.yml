@@ -47,14 +47,13 @@ jobs:
 
           - os: ubuntu-latest
             TARGET: ubuntu
-            CMD_BUILD: >
-                pyinstaller -y --onefile --windowed --add-data pdfs/:pdfs/ --icon icon.ico --hiddenimport=babel.numbers --hiddenimport=yaml Scheintool.py &&
+            CMD_BUILD: pyinstaller -y --onefile --windowed --add-data pdfs/:pdfs/ --icon icon.ico --hiddenimport=babel.numbers --hiddenimport=yaml Scheintool.py
             OUT_FILE_NAME: Scheintool
             ASSET_MIME: application/x-executable
 
           - os: windows-latest
             TARGET: windows
-            CMD_BUILD: pyinstaller -F -w -n clipster -i resources/clipster.ico cli.py
+            CMD_BUILD: pyinstaller -y --onefile --windowed --add-data pdfs/;pdfs/ --icon icon.ico --hiddenimport=babel.numbers --hiddenimport=yaml Scheintool.py
             OUT_FILE_NAME: Scheintool.exe
             ASSET_MIME: application/vnd.microsoft.portable-executable
 
@@ -75,6 +74,7 @@ jobs:
           auto-activate-base: true
 
       - name: Build with pyinstaller for ${{matrix.TARGET}}
+        id: id_${{matrix.TARGET}}
         run: ${{matrix.CMD_BUILD}}
 
       - name: Upload Release Asset

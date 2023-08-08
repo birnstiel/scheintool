@@ -129,7 +129,7 @@ def read_grades(filename):
         elif col.lower() in ['mnr', 'matrikelnummer', 'matrikelnumber']:
             grades.rename(columns={col.lower(): 'MNR'}, inplace=True)
 
-    return grades
+    return grades.dropna()
 
 
 def read_LSF(filename):
@@ -303,7 +303,7 @@ def fill_certificate(data, filename, degree='master'):
 
     # create the output PDF file
 
-    output = PyPDF2.PdfFileWriter()
+    output = PyPDF2.PdfWriter()
 
     # we loop over each dictionary
 
@@ -353,15 +353,15 @@ def fill_certificate(data, filename, degree='master'):
 
         # move to the beginning of the StringIO buffer
         packet.seek(0)
-        new_pdf = PyPDF2.PdfFileReader(packet)
+        new_pdf = PyPDF2.PdfReader(packet)
 
         # add the "watermark" (which is the new pdf) on the existing page
         # we need to re-open the schein otherwise, we will overwrite all data
         # on all the pdfs
-        schein = PyPDF2.PdfFileReader(open(cert, 'rb'))
-        page = schein.getPage(0)
-        page.mergePage(new_pdf.getPage(0))
-        output.addPage(page)
+        schein = PyPDF2.PdfReader(open(cert, 'rb'))
+        page = schein.pages[0]
+        page.merge_page(new_pdf.pages[0])
+        output.add_page(page)
 
     # finally, write "output" to a real file
     outputStream = open(filename, "wb")
