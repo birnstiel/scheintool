@@ -307,7 +307,12 @@ def fill_certificate(data, filename, degree='master'):
 
     # we loop over each dictionary
 
-    for i, row in data.iterrows():
+    for i, row in data.sort_values('lastname').iterrows():
+
+        # skip failed (worse than 4.0)
+
+        if float(str(row.grade).replace(',', '.')) > 4.0:
+            continue
 
         packet = io.BytesIO()
 
@@ -463,15 +468,21 @@ def write_grade_table(fname, data, course_info):
         col = 0
 
         # Iterate over the data and write it out row by row.
-        for i, pdrow in data.iterrows():
-            BENB = float(str(pdrow.grade).replace(',', '.')) <= 4.0
+        for i, pdrow in data.sort_values('lastname').iterrows():
+
+            if isinstance(pdrow.grade, str):
+                float_grade = float(pdrow.grade.replace(',', '.'))
+            else:
+                float_grade = pdrow.grade
+
+            BENB = float_grade <= 4.0
             BENB = int(BENB) * 'BE' + int(not BENB) * 'NB'
 
             worksheet.write(row, col, pdrow.MNR)
             worksheet.write(row, col + 1, pdrow.lastname)
             worksheet.write(row, col + 2, pdrow.firstname)
             worksheet.write(row, col + 3, pdrow.major)
-            worksheet.write(row, col + 4, pdrow.grade)
+            worksheet.write(row, col + 4, f'{float_grade:.1f}')
             worksheet.write(row, col + 5, BENB)
             if 'examdate' not in course_info:
                 worksheet.write(row, col + 6, pdrow.examdate)
